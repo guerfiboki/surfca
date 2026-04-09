@@ -1,0 +1,105 @@
+// file: prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  bookings      Booking[]
+}
+
+model Listing {
+  id            String        @id @default(cuid())
+  title         String
+  slug          String        @unique
+  description   String
+  location      String
+  pricePerNight Float
+  capacity      Int
+  images        String[]
+  amenities     String[]
+  category      Category      @default(SURF_CAMP)
+  active        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  bookings      Booking[]
+  blockedDates  BlockedDate[]
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  listingId     String
+  userId        String
+  checkIn       DateTime
+  checkOut      DateTime
+  guests        Int
+  totalPrice    Float
+  status        BookingStatus @default(PENDING)
+  guestName     String
+  guestEmail    String
+  guestPhone    String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  listing       Listing       @relation(fields: [listingId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
+  payment       Payment?
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  bookingId         String        @unique
+  stripeSessionId   String        @unique
+  stripePaymentIntent String?
+  amount            Float
+  currency          String        @default("eur")
+  status            PaymentStatus @default(PENDING)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  booking           Booking       @relation(fields: [bookingId], references: [id])
+}
+
+model BlockedDate {
+  id          String   @id @default(cuid())
+  listingId   String
+  date        DateTime
+  reason      String?
+  listing     Listing  @relation(fields: [listingId], references: [id])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Category {
+  SURF_CAMP
+  ROOM
+  VILLA
+  HOSTEL
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
